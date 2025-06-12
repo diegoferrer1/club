@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Paletas de Colores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .color-column {
+            transition: background-color 0.5s ease-in-out, transform 0.3s ease;
+        }
+        .color-info {
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0;
+        }
+        .color-column:hover .color-info {
+            opacity: 1;
+        }
+        .copy-feedback {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #10B981; /* green-500 */
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease, bottom 0.3s ease;
+            pointer-events: none;
+        }
+        .copy-feedback.show {
+            opacity: 1;
+            bottom: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <div id="palette-container" class="flex h-screen w-full flex-col md:flex-row">
+        <!-- Las columnas de color se insertarán aquí con JS -->
+    </div>
+
+    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+        <button id="generate-btn" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">
+            <i class="fas fa-palette mr-2"></i> Generar Nueva Paleta
+        </button>
+    </div>
+
+    <script>
+        const paletteContainer = document.getElementById('palette-container');
+        const generateBtn = document.getElementById('generate-btn');
+
+        // Función para generar un color hexadecimal aleatorio
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        /**
+         * Genera un color similar a un color base.
+         * @param {string} baseColor - El color hexadecimal base.
+         * @param {number} variation - El rango de variación (0-255).
+         * @returns {string} - Un nuevo color hexadecimal.
+         */
+        function generateSimilarColor(baseColor, variation) {
+            const hex = baseColor.replace('#', '');
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+
+            r = Math.max(0, Math.min(255, r + Math.floor(Math.random() * variation * 2) - variation));
+            g = Math.max(0, Math.min(255, g + Math.floor(Math.random() * variation * 2) - variation));
+            b = Math.max(0, Math.min(255, b + Math.floor(Math.random() * variation * 2) - variation));
+
+            const toHex = (c) => ('0' + c.toString(16)).slice(-2);
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+        }
+
+        /**
+         * Obtiene el color opuesto (complementario).
+         * @param {string} hexColor - El color hexadecimal base.
+         * @returns {string} - El color hexadecimal opuesto.
+         */
+        function getOppositeColor(hexColor) {
+            const hex = hexColor.replace('#', '');
+            const r = 255 - parseInt(hex.substring(0, 2), 16);
+            const g = 255 - parseInt(hex.substring(2, 4), 16);
+            const b = 255 - parseInt(hex.substring(4, 6), 16);
+            const toHex = (c) => ('0' + c.toString(16)).slice(-2);
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+        }
+        
+        /**
+         * Obtiene un color neutro (blanco o negro con tinte).
+         * @returns {string} - Un color hexadecimal neutro.
+         */
+        function getNeutralColor() {
+            const lightShades = ['#F8FAFC', '#F1F5F9', '#E2E8F0'];
+            const darkShades = ['#1E293B', '#0F172A', '#020617'];
+            const shades = Math.random() > 0.5 ? lightShades : darkShades;
+            return shades[Math.floor(Math.random() * shades.length)];
+        }
+
+
+        // Función para determinar si el color de fondo es oscuro o claro
+        function isDarkColor(hexColor) {
+            const hex = hexColor.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance < 0.5;
+        }
+
+        /**
+         * FUNCIÓN ACTUALIZADA: Genera una paleta con un número variable de colores.
+         */
+        function generatePalette() {
+            paletteContainer.innerHTML = ''; // Limpiar paleta anterior
+            
+            // CAMBIO: Elige un número aleatorio de colores entre 4 y 6
+            const numColors = Math.floor(Math.random() * 3) + 4; // Genera 4, 5, o 6
+            const palette = [];
+            const baseColor = getRandomColor();
+            
+            // 1. Siempre añadir el color base
+            palette.push(baseColor);
+            // 2. Siempre añadir un color neutro
+            palette.push(getNeutralColor());
+            // 3. Siempre añadir el color opuesto
+            palette.push(getOppositeColor(baseColor));
+
+            // 4. Añadir colores similares hasta llenar la paleta
+            const numSimilarColors = numColors - palette.length;
+            for (let i = 0; i < numSimilarColors; i++) {
+                // CAMBIO: Aumentar la variación para colores más distintos
+                // La variación aumenta con cada color similar para mayor diversidad
+                const variation = 60 + (i * 20); 
+                palette.push(generateSimilarColor(baseColor, variation));
+            }
+
+            // Desordenar la paleta para que la composición sea siempre una sorpresa
+            palette.sort(() => 0.5 - Math.random());
+            
+            palette.forEach((color, i) => {
+                const isDark = isDarkColor(color);
+                const textColor = isDark ? 'text-white' : 'text-gray-900';
+
+                const column = document.createElement('div');
+                column.classList.add('color-column', 'flex-1', 'flex', 'items-center', 'justify-center', 'relative', 'p-4');
+                column.style.backgroundColor = color;
+
+                // Animación de entrada
+                column.style.transform = 'translateY(20px)';
+                column.style.opacity = '0';
+                setTimeout(() => {
+                    column.style.transform = 'translateY(0)';
+                    column.style.opacity = '1';
+                }, i * 100);
+
+                const colorInfo = document.createElement('div');
+                colorInfo.classList.add('color-info', 'text-center', 'space-y-4');
+                
+                const hexText = document.createElement('h2');
+                hexText.classList.add('text-2xl', 'font-bold', textColor, 'tracking-widest');
+                hexText.textContent = color;
+
+                const copyButtonContainer = document.createElement('div');
+                copyButtonContainer.classList.add('relative');
+
+                const copyButton = document.createElement('button');
+                copyButton.classList.add('copy-btn', 'py-2', 'px-4', 'rounded-full', 'transition-colors', 'duration-300', 'font-semibold');
+                
+                if (isDark) {
+                    copyButton.classList.add('bg-white', 'bg-opacity-20', 'hover:bg-opacity-30', textColor);
+                } else {
+                    copyButton.classList.add('bg-black', 'bg-opacity-20', 'hover:bg-opacity-30', textColor);
+                }
+                
+                copyButton.innerHTML = `<i class="far fa-copy mr-2"></i> Copiar`;
+                copyButton.dataset.color = color;
+
+                const copyFeedback = document.createElement('div');
+                copyFeedback.classList.add('copy-feedback');
+                copyFeedback.textContent = '¡Copiado!';
+
+                copyButtonContainer.appendChild(copyButton);
+                copyButtonContainer.appendChild(copyFeedback);
+
+                colorInfo.appendChild(hexText);
+                colorInfo.appendChild(copyButtonContainer);
+                column.appendChild(colorInfo);
+                paletteContainer.appendChild(column);
+            });
+        }
+        
+        // Event listener para el botón de generar
+        generateBtn.addEventListener('click', generatePalette);
+
+        // Event listener para copiar el color (delegación de eventos)
+        paletteContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.copy-btn')) {
+                const button = e.target.closest('.copy-btn');
+                const colorToCopy = button.dataset.color;
+                
+                const textarea = document.createElement('textarea');
+                textarea.value = colorToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    
+                    const feedback = button.nextElementSibling;
+                    feedback.classList.add('show');
+                    setTimeout(() => {
+                        feedback.classList.remove('show');
+                    }, 1500);
+
+                } catch (err) {
+                    console.error('No se pudo copiar el color: ', err);
+                }
+                document.body.removeChild(textarea);
+            }
+        });
+
+        // Generar la paleta inicial al cargar la página
+        window.addEventListener('load', generatePalette);
+    </script>
+</body>
+</html>
